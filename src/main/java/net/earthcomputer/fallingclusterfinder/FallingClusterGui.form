@@ -130,6 +130,12 @@
               <text value="0"/>
             </properties>
           </component>
+          <component id="92f54" class="javax.swing.JCheckBox" binding="enableNetherCheckbox">
+            <constraints/>
+            <properties>
+              <text value="Is Nether"/>
+            </properties>
+          </component>
         </children>
       </grid>
       <grid id="c56cc" binding="unloadChunkPanel" custom-create="true" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="0">

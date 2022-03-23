@@ -48,6 +48,7 @@ public class FallingClusterGui {
     private JTextField spawnXInput;
     private JTextField spawnZInput;
     private JCheckBox enableSpawnPointCheckbox;
+    private JCheckBox enableNetherCheckbox;
     private JTextField glassXInput;
     private JTextField glassZInput;
     private JTextField unloadChunkSearchFromXInput;
@@ -418,7 +419,7 @@ public class FallingClusterGui {
                             writer.println(String.format("chunk load %d %d", rectangleOrigin.x + dx, rectangleOrigin.y + dz));
                         }
                     }
-                    generateStructure(rectangleOrigin, rectangleSize, direction, secondaryDirection, clusterChunksSet, new CommandStructureBuilder(writer::println));
+                    generateStructure(rectangleOrigin, rectangleSize, direction, secondaryDirection, clusterChunksSet, new CommandStructureBuilder(writer::println), enableNetherCheckbox.isSelected());
                 } catch (IOException ex) {
                     JOptionPane.showMessageDialog(this.mainPanel, "Failed to save file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -457,7 +458,7 @@ public class FallingClusterGui {
             fileChooser.setSelectedFile(new File("cluster.litematic"));
             if (fileChooser.showSaveDialog(this.mainPanel) == JFileChooser.APPROVE_OPTION) {
                 LitematicStructureBuilder structure = new LitematicStructureBuilder();
-                generateStructure(rectangleOrigin, rectangleSize, direction, secondaryDirection, clusterChunksSet, structure);
+                generateStructure(rectangleOrigin, rectangleSize, direction, secondaryDirection, clusterChunksSet, structure, enableNetherCheckbox.isSelected());
                 structure.save(fileChooser.getSelectedFile());
             }
         });
@@ -515,33 +516,37 @@ public class FallingClusterGui {
         }
     }
 
-    private static void generateStructure(Point rectangleOrigin, Point rectangleSize, Direction direction, Direction secondaryDirection, Set<Point> clusterChunksSet, IStructureBuilder structure) {
+    private static void generateStructure(Point rectangleOrigin, Point rectangleSize, Direction direction, Direction secondaryDirection, Set<Point> clusterChunksSet, IStructureBuilder structure, boolean isNether) {
         // add stone brick lines
-        if (direction.isXAxis()) {
-            for (int dz = 0; dz < rectangleSize.y; dz += 2) {
-                int minX = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz + 1, clusterChunksSet));
-                if (direction == Direction.EAST) {
-                    minX = rectangleOrigin.x * 16;
+        int yHeight = 165;
+        if(isNether) yHeight = 128;
+        if (!isNether) {
+            if (direction.isXAxis()) {
+                for (int dz = 0; dz < rectangleSize.y; dz += 2) {
+                    int minX = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz + 1, clusterChunksSet));
+                    if (direction == Direction.EAST) {
+                        minX = rectangleOrigin.x * 16;
+                    }
+                    int maxX = Math.max(getMaxPos(rectangleOrigin, rectangleSize, Direction.EAST, dz, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.EAST, dz + 1, clusterChunksSet));
+                    if (direction == Direction.WEST) {
+                        maxX = (rectangleOrigin.x + rectangleSize.x) * 16 - 1;
+                    }
+                    int z = (rectangleOrigin.y + dz) * 16 + (secondaryDirection == Direction.SOUTH ? 14 : 17);
+                    structure.fill(minX, yHeight, z, maxX, yHeight, z, "stonebrick");
                 }
-                int maxX = Math.max(getMaxPos(rectangleOrigin, rectangleSize, Direction.EAST, dz, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.EAST, dz + 1, clusterChunksSet));
-                if (direction == Direction.WEST) {
-                    maxX = (rectangleOrigin.x + rectangleSize.x) * 16 - 1;
+            } else {
+                for (int dx = 0; dx < rectangleSize.x; dx += 2) {
+                    int x = (rectangleOrigin.x + dx) * 16 + (secondaryDirection == Direction.EAST ? 14 : 17);
+                    int minZ = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.NORTH, dx, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.NORTH, dx + 1, clusterChunksSet));
+                    if (direction == Direction.SOUTH) {
+                        minZ = rectangleOrigin.y * 16;
+                    }
+                    int maxZ = Math.max(getMaxPos(rectangleOrigin, rectangleSize, Direction.SOUTH, dx, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.SOUTH, dx + 1, clusterChunksSet));
+                    if (direction == Direction.NORTH) {
+                        maxZ = (rectangleOrigin.y + rectangleSize.y) * 16 - 1;
+                    }
+                    structure.fill(x, yHeight, minZ, x, yHeight, maxZ, "stonebrick");
                 }
-                int z = (rectangleOrigin.y + dz) * 16 + (secondaryDirection == Direction.SOUTH ? 14 : 17);
-                structure.fill(minX, 165, z, maxX, 165, z, "stonebrick");
-            }
-        } else {
-            for (int dx = 0; dx < rectangleSize.x; dx += 2) {
-                int x = (rectangleOrigin.x + dx) * 16 + (secondaryDirection == Direction.EAST ? 14 : 17);
-                int minZ = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.NORTH, dx, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.NORTH, dx + 1, clusterChunksSet));
-                if (direction == Direction.SOUTH) {
-                    minZ = rectangleOrigin.y * 16;
-                }
-                int maxZ = Math.max(getMaxPos(rectangleOrigin, rectangleSize, Direction.SOUTH, dx, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.SOUTH, dx + 1, clusterChunksSet));
-                if (direction == Direction.NORTH) {
-                    maxZ = (rectangleOrigin.y + rectangleSize.y) * 16 - 1;
-                }
-                structure.fill(x, 165, minZ, x, 165, maxZ, "stonebrick");
             }
         }
         // add standalone chests
@@ -586,7 +591,7 @@ public class FallingClusterGui {
                         continue;
                     }
                 }
-                structure.setblock(x, 165, z, "chest", "facing", secondaryDirection.internalName());
+                structure.setblock(x, yHeight, z, "chest", "facing", direction.internalName());
             }
         }
         // add hoppers or replacements
@@ -644,10 +649,11 @@ public class FallingClusterGui {
                 Point chunk = new Point(rectangleOrigin.x + dx, rectangleOrigin.y + dz);
                 boolean isClusterChunk = clusterChunksSet.contains(chunk);
                 if (isClusterChunk) {
-                    structure.setblock(x, 165, z, "hopper", "facing", secondaryDirection.getOpposite().internalName());
-                    structure.setblock(x, 166, z, "dropper", "facing", "up");
+                    if(!isNether) structure.setblock(x, yHeight, z, "hopper", "facing", secondaryDirection.getOpposite().internalName());
+                    else structure.setblock(x, yHeight, z, "hopper", "facing", "down");
+                    structure.setblock(x, yHeight + 1, z, "dropper", "facing", "up");
                     if (needsChest) {
-                        structure.setblock(x, 167, z, "chest", "facing", secondaryDirection.internalName());
+                        structure.setblock(x, yHeight + 2, z, "chest", "facing", direction.internalName());
                     }
                 } else {
                     boolean replacementNeeded;
@@ -663,12 +669,12 @@ public class FallingClusterGui {
                         }
                     }
                     if (replacementNeeded) {
-                        structure.setblock(x, 165, z, "stonebrick");
+                        if (!isNether) structure.setblock(x, yHeight, z, "stonebrick");
                         if (needsChest) {
-                            structure.setblock(x, 166, z, "chest", "facing", secondaryDirection.internalName());
+                            structure.setblock(x, yHeight + 1, z, "chest", "facing", direction.internalName());
                         }
                     } else if (needsChest) {
-                        structure.setblock(x, 165, z, "chest", "facing", secondaryDirection.internalName());
+                        structure.setblock(x, yHeight, z, "chest", "facing", direction.internalName());
                     }
                 }
             }
