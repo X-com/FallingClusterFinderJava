@@ -591,7 +591,7 @@ public class FallingClusterGui {
                         continue;
                     }
                 }
-                structure.setblock(x, yHeight, z, "chest", "facing", direction.internalName());
+                structure.setblock(x, yHeight, z, "chest", "facing", direction.getOpposite().internalName());
             }
         }
         // add hoppers or replacements
@@ -653,7 +653,7 @@ public class FallingClusterGui {
                     else structure.setblock(x, yHeight, z, "hopper", "facing", "down");
                     structure.setblock(x, yHeight + 1, z, "dropper", "facing", "up");
                     if (needsChest) {
-                        structure.setblock(x, yHeight + 2, z, "chest", "facing", direction.internalName());
+                        structure.setblock(x, yHeight + 2, z, "chest", "facing", direction.getOpposite().internalName());
                     }
                 } else {
                     boolean replacementNeeded;
@@ -671,10 +671,10 @@ public class FallingClusterGui {
                     if (replacementNeeded) {
                         if (!isNether) structure.setblock(x, yHeight, z, "stonebrick");
                         if (needsChest) {
-                            structure.setblock(x, yHeight + 1, z, "chest", "facing", direction.internalName());
+                            structure.setblock(x, yHeight + (isNether ? 0 : 1), z, "chest", "facing", direction.getOpposite().internalName());
                         }
                     } else if (needsChest) {
-                        structure.setblock(x, yHeight, z, "chest", "facing", direction.internalName());
+                        structure.setblock(x, yHeight, z, "chest", "facing", direction.getOpposite().internalName());
                     }
                 }
             }
