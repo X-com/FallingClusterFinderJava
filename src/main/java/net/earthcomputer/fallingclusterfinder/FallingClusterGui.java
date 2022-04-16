@@ -512,14 +512,15 @@ public class FallingClusterGui {
                 }
                 return chunkX * 16 + (((chunkX - rectangleOrigin.x) & 1) == 0 ? 15 : 0);
             }
-            default: throw new IllegalArgumentException("Unknown direction: " + direction);
+            default:
+                throw new IllegalArgumentException("Unknown direction: " + direction);
         }
     }
 
     private static void generateStructure(Point rectangleOrigin, Point rectangleSize, Direction direction, Direction secondaryDirection, Set<Point> clusterChunksSet, IStructureBuilder structure, boolean isNether) {
         // add stone brick lines
         int yHeight = 165;
-        if(isNether) yHeight = 128;
+        if (isNether) yHeight = 128;
         if (!isNether) {
             if (direction.isXAxis()) {
                 for (int dz = 0; dz < rectangleSize.y; dz += 2) {
@@ -550,30 +551,37 @@ public class FallingClusterGui {
             }
         }
         // add standalone chests
+        int temp = 0;
         for (int dx = 0; dx < rectangleSize.x; dx += 2) {
             int minZ = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.NORTH, dx, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.NORTH, dx + 1, clusterChunksSet));
             if (direction == Direction.SOUTH) {
-                minZ = rectangleOrigin.y * 16;
+                minZ = (rectangleOrigin.y + 1) * 16;
             }
             int maxZ = Math.max(getMaxPos(rectangleOrigin, rectangleSize, Direction.SOUTH, dx, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.SOUTH, dx + 1, clusterChunksSet));
             if (direction == Direction.NORTH) {
-                maxZ = (rectangleOrigin.y + rectangleSize.y) * 16 - 1;
+                maxZ = (rectangleOrigin.y + rectangleSize.y + 1) * 16 - 1;
             }
             for (int dz = 0; dz < rectangleSize.y; dz += 2) {
                 int minX = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz + 1, clusterChunksSet));
                 if (direction == Direction.EAST) {
-                    minX = rectangleOrigin.x * 16;
+                    minX = (rectangleOrigin.x + 1) * 16;
                 }
                 int maxX = Math.max(getMaxPos(rectangleOrigin, rectangleSize, Direction.EAST, dz, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.EAST, dz + 1, clusterChunksSet));
                 if (direction == Direction.WEST) {
-                    maxX = (rectangleOrigin.x + rectangleSize.x) * 16 - 1;
+                    maxX = (rectangleOrigin.x + rectangleSize.x + 1) * 16 - 1;
                 }
                 int x, z;
                 if (direction.isXAxis()) {
                     x = direction == Direction.EAST ? (rectangleOrigin.x + dx) * 16 + 31 : (rectangleOrigin.x + dx) * 16;
+                    if (x < minX || x > maxX) {
+                        x = direction == Direction.EAST ? x - 15 : x + 15;
+                    }
                     z = (rectangleOrigin.y + dz) * 16 + (secondaryDirection == Direction.SOUTH ? 15 : 16);
                 } else {
                     z = direction == Direction.SOUTH ? (rectangleOrigin.y + dz) * 16 + 31 : (rectangleOrigin.y + dz) * 16;
+                    if (z < minZ || z > maxZ) {
+                        z = direction == Direction.SOUTH ? z - 15 : z + 15;
+                    }
                     x = (rectangleOrigin.x + dx) * 16 + (secondaryDirection == Direction.EAST ? 15 : 16);
                 }
                 if (direction.isXAxis()) {
@@ -591,6 +599,7 @@ public class FallingClusterGui {
                         continue;
                     }
                 }
+
                 structure.setblock(x, yHeight, z, "chest", "facing", direction.getOpposite().internalName());
             }
         }
@@ -604,6 +613,7 @@ public class FallingClusterGui {
             if (direction == Direction.NORTH) {
                 maxZ = (rectangleOrigin.y + rectangleSize.y) * 16 - 1;
             }
+            boolean chestLain = false;
             for (int dz = 0; dz < rectangleSize.y; dz++) {
                 int minX = Math.min(getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz & ~1, clusterChunksSet), getMaxPos(rectangleOrigin, rectangleSize, Direction.WEST, dz | 1, clusterChunksSet));
                 if (direction == Direction.EAST) {
@@ -635,21 +645,32 @@ public class FallingClusterGui {
                         throw new IllegalStateException();
                     }
                 }
+                if (needsChest) chestLain = true;
                 int x = (rectangleOrigin.x + dx) * 16 + ((dx & 1) == 0 ? 15 : 0);
                 int z = (rectangleOrigin.y + dz) * 16 + ((dz & 1) == 0 ? 15 : 0);
                 if (direction.isXAxis()) {
+                    int xx = rectangleOrigin.y + dz;
                     if (x < minX || x > maxX) {
                         continue;
                     }
+                    if (chestLain) temp = xx;
                 } else {
                     if (z < minZ || z > maxZ) {
                         continue;
+                    }
+                    int yy = rectangleOrigin.y + dz;
+                    if (chestLain) {
+                        temp = yy;
+                    }
+                    if (!chestLain) {
+                        System.out.printf("%d %d %d %d %d %d\n", yy, dx, dz, minZ / 16, maxZ / 16, temp);
                     }
                 }
                 Point chunk = new Point(rectangleOrigin.x + dx, rectangleOrigin.y + dz);
                 boolean isClusterChunk = clusterChunksSet.contains(chunk);
                 if (isClusterChunk) {
-                    if(!isNether) structure.setblock(x, yHeight, z, "hopper", "facing", secondaryDirection.getOpposite().internalName());
+                    if (!isNether)
+                        structure.setblock(x, yHeight, z, "hopper", "facing", secondaryDirection.getOpposite().internalName());
                     else structure.setblock(x, yHeight, z, "hopper", "facing", "down");
                     structure.setblock(x, yHeight + 1, z, "dropper", "facing", "up");
                     if (needsChest) {
